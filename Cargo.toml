@@ -1,0 +1,7 @@
+[package]
+name = "upm"
+version = "0.1.0"
+authors = ["Brandon Moore <moore.3071@osu.edu>"]
+
+[dependencies]
+getopts = "0.2"
