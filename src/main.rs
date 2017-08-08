@@ -1,58 +1,63 @@
-/* Usage: upm install [{-m --manager} <package-manager>] <package-name(s)>
- * Usage: upm uninstall [{-m --manager} <package-manager>] <package-name(s)>
- * Usage: upm query [{-m --manager} <package-manager>] [<package-name(s)>]
- * Usage: upm [--version | {-h --help}]
- */
-
 extern crate getopts;
+
+mod install;
+mod uninstall;
+mod query;
+
+mod managers;
+use managers::PackageManager;
 
 use getopts::Options;
 use std::env;
 
-fn do_work(inp: &str, out: Option<String>) {
-    println!("{}", inp);
-    match out {
-        Some(x) => println!("{}", x),
-        None => println!("No Output"),
-    }
-}
-
-fn print_usage(program: &str, opts: Options) {
+fn print_usage(program: String) {
+    println!("Usage: {} [--version | {{-h --help}}]", program);
+/* Reimplement if options are added for the base command
     let brief = format!("Usage: {} FILE [options]", program);
     print!("{}", opts.usage(&brief));
+*/
 }
 
-fn find_package_managers() {
+fn find_package_managers(possible: Vec<PackageManager>) {
 
 }
 
 //Should call man pages
-fn display_help(/*name: &str*/) {
-
-}
-
-fn no_args() {
-
+fn display_help(name: &str) {
+    match name {
+        "install" => install::display_help(),
+        "uninstall" => uninstall::display_help(),
+        "query" => query::display_help(),
+        _ => {}
+            //TODO
+    }
 }
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
+    let pkg_name = env!("CARGO_PKG_NAME");
+    let pkg_version = env!("CARGO_PKG_VERSION");
+
+    managers::get_managers();
 
     if args.len() > 1 {
         match &*args[1] {
-            "--help" => display_help(),
-            "-h" => display_help(),
+            "--help" => display_help(&*args[2]),
+            "-h" => display_help(&*args[2]),
             "--version" => {
-                println!("{} v{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+                println!("{} v{}", pkg_name, pkg_version);
+            },
+            _ => {
+                println!("Invalid {} command: {}", pkg_name, args[1]);
+                print_usage(program);
             }
-            _ => no_args()
         }
     } else {
-        display_help();
+        print_usage(program);
     }
 
-/*
+/* Stolen from the getopts crate documentation
     let mut opts = Options::new();
     opts.optopt("o", "", "set output file name", "NAME");
     opts.optflag("h", "help", "print this help menu");
