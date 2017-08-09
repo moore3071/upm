@@ -9,12 +9,14 @@ use std::fs;
 /* Giant struct for holding the different commands of each 
  * package manager.
  */
+#[derive(Clone)]
 pub struct PackageManager {
-    name: String,
-    install: Option<Vec<String>>,
-    install_local: Option<Vec<String>>,
-    remove: Option<Vec<String>>,
-    remove_local: Option<Vec<String>>,
+    pub name: String,
+    pub version: Option<Vec<String>>,
+    pub install: Option<Vec<String>>,
+    pub install_local: Option<Vec<String>>,
+    pub remove: Option<Vec<String>>,
+    pub remove_local: Option<Vec<String>>,
 }
 
 impl PackageManager {
@@ -70,6 +72,7 @@ fn read_manager_file(name: String, path: &Path) -> PackageManager {
 fn make_package_manager(name: &str, mut command_map: HashMap<String, Vec<String>> ) -> PackageManager {
     let result: PackageManager = PackageManager {
         name: String::from(name),
+        version: command_map.remove("version"),
         install: command_map.remove("install"),
         install_local: command_map.remove("install_local"),
         remove: command_map.remove("remove"),
