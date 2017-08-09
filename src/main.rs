@@ -1,9 +1,5 @@
 extern crate getopts;
 
-mod install;
-mod uninstall;
-mod query;
-
 mod managers;
 use managers::PackageManager;
 
@@ -73,7 +69,7 @@ fn main() {
     let pkg_name = env!("CARGO_PKG_NAME");
     let pkg_version = env!("CARGO_PKG_VERSION");
 
-//    let managers: Vec<PackageManager> = managers::get_managers();
+    let managers: Vec<PackageManager> = managers::get_managers();
 
     if args.len() > 1 {
         match &*args[1] {

@@ -33,9 +33,11 @@ fn get_command_as_array(field: String) -> Vec<String> {
 
 /* Loads a package manager from its config file
  */
-fn read_manager_file(name: String, path: &Path) -> PackageManager {
+fn read_manager_file(name: String, path: &Path) -> Result<PackageManager, ::std::io::Error> {
     let file = match File::open(path) {
-        Err(why) => panic!("couldn't open {}: {}", path.display(), why.description()),
+        Err(why) => {
+            return Err(why);
+        },
         Ok(file) => file,
     };
 
@@ -66,7 +68,7 @@ fn read_manager_file(name: String, path: &Path) -> PackageManager {
         }
     }
 
-    return make_package_manager(&name, command_map);
+    return Ok(make_package_manager(&name, command_map));
 }
 
 fn make_package_manager(name: &str, mut command_map: HashMap<String, Vec<String>> ) -> PackageManager {
@@ -92,7 +94,10 @@ pub fn get_managers() -> Vec<PackageManager> {
                     let name: String = entry.file_name().into_string().unwrap();
                     let tmp = entry.path();
                     let path: &Path = tmp.as_path();
-                    result_list.push(read_manager_file(name, path));
+                    match read_manager_file(name, path) {
+                        Err(why) =>  eprintln!("couldn't open {}: {}", path.display(), why.description()),
+                        Ok(manag) => result_list.push(manag),
+                    };
                 },
                 Err(er) => {
                     eprintln!("A package manager couldn't be accessed: {:?}", er.kind());
