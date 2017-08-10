@@ -14,9 +14,8 @@ fn print_usage(program: &str, opts: Options) {
     print!("{}", opts.usage(&brief));
 }
 
-/* Checks what package managers are on the system by calling
- * the version command
- */
+/// Checks what package managers are on the system by calling
+/// the version command
 fn find_package_managers(possible: &Vec<PackageManager>) -> Vec<PackageManager> {
     let mut result: Vec<PackageManager> = Vec::new();
     for pack in possible {
@@ -45,22 +44,66 @@ fn run_command(command_array: Vec<String>) -> std::io::Result<ExitStatus> {
 fn display_help(args: &Vec<String>) {
     let name: &str = " ";
     if args.len() > 2 {
-        let name = &args[2];
+        name = &args[2];
+        println!("{}", name);
     }
     match name {
         "install" => {
             Command::new("man").arg("upm-install").status();
         },
         "uninstall" => {
-            Command::new("man").arg("upm-uninstall").status();
+            println!("Weird things");
+//            Command::new("man").arg("upm-uninstall").status();
         },
         "query" => {
             Command::new("man").arg("upm-query").status();
         },
         _ => {
-            Command::new("man").arg("upm").status();
+            println!("-{}-", name);
+//            Command::new("man").arg("upm").status();
         },
     };
+}
+
+fn install(local: bool, installed: bool, package_managers: Vec<String>, args: Vec<String>)) {
+    let local = arg_reading.0;
+    let installed = arg_reading.1;
+    let package_managers = arg_reading.2;
+    let args = arg_reading.3;
+    //TODO
+    
+}
+
+fn query(local: bool, installed: bool, package_managers: Vec<String>, args: Vec<String>) -> HashMap<String, Vec<Package>> {
+    
+}
+
+fn uninstall(args: Vec<String>) {
+//TODO
+}
+
+fn read_args(args: Vec<String>) -> (bool, bool, Vec<String>, Vec<String>) {
+    let mut local: bool = false;
+    let mut installed: bool = false;
+    let specified_managers: Vec<String>;
+
+    let mut opts = Options::new();
+    opts.optmulti("m", "manager", "specify a manager to use. Use repeatedly for multiple", "manager_name");
+    opts.optflag("i", "installed", "Query the installed packages");
+    opts.optflag("l", "local", "Query local package files (bundle, etc)");
+    let matches = match opts.parse(&args[2..]) {
+        Ok(m) => { m }
+        Err(f) => { panic!(f.to_string()) }
+    };
+    if matches.opt_present("i") {
+        installed = true;
+    }
+    if matches.opt_present("l") {
+        local = true;
+    }
+    specified_managers = matches.opt_strs("m");
+
+    return (local, installed, specified_managers, matches.free);
 }
 
 fn main() {
@@ -82,7 +125,7 @@ fn main() {
 
             },
             "install" => {
-
+                read_args(args);
             },
             "uninstall" => {
 

@@ -6,9 +6,8 @@ use std::io::BufReader;
 use std::io::BufRead;
 use std::fs;
 
-/* Giant struct for holding the different commands of each 
- * package manager.
- */
+/// The name of a packagemanager and the various commands 
+/// that it may or may not supply to the user.
 #[derive(Clone)]
 pub struct PackageManager {
     pub name: String,
@@ -17,6 +16,22 @@ pub struct PackageManager {
     pub install_local: Option<Vec<String>>,
     pub remove: Option<Vec<String>>,
     pub remove_local: Option<Vec<String>>,
+}
+
+/// Information on a package from a particular package 
+/// manager
+pub struct Package {
+    pub name: String,
+    pub owner: &PackageManager,
+    pub version: String,
+    pub description: Option<String>,
+}
+
+impl Package {
+    /// Return whether the package has the specified name
+    pub fn is_called(&self, name: String) -> bool {
+        self.name == name
+    }
 }
 
 impl PackageManager {
@@ -71,7 +86,10 @@ fn read_manager_file(name: String, path: &Path) -> Result<PackageManager, ::std:
     return Ok(make_package_manager(&name, command_map));
 }
 
-fn make_package_manager(name: &str, mut command_map: HashMap<String, Vec<String>> ) -> PackageManager {
+/// Make a PackageManager from a name and hashmap of command
+/// names mapped to a vector of strings representing the 
+/// command.
+pub fn make_package_manager(name: &str, mut command_map: HashMap<String, Vec<String>> ) -> PackageManager {
     let result: PackageManager = PackageManager {
         name: String::from(name),
         version: command_map.remove("version"),
@@ -84,6 +102,8 @@ fn make_package_manager(name: &str, mut command_map: HashMap<String, Vec<String>
     result
 }
 
+/// Retrieve the package managers listed in 
+/// /var/lib/upm/managers
 pub fn get_managers() -> Vec<PackageManager> {
     let mut result_list: Vec<PackageManager> = Vec::new();
 
