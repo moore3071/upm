@@ -20,9 +20,9 @@ pub struct PackageManager {
 
 /// Information on a package from a particular package 
 /// manager
-pub struct Package {
+pub struct Package<'a> {
     pub name: String,
-    pub owner: &PackageManager,
+    pub owner:& 'a PackageManager,
     pub version: String,
     pub description: Option<String>,
 }
@@ -66,6 +66,7 @@ fn read_manager_file(name: String, path: &Path) -> Result<PackageManager, ::std:
     let mut value: String = String::from("");
 
     for line in lines {
+        //FIXME Could possibly use a rustification of getting rid of statements
         let firstchar = line.trim().chars().next();
         //Ignore comment lines
         if firstchar == Some('#') {
@@ -90,7 +91,7 @@ fn read_manager_file(name: String, path: &Path) -> Result<PackageManager, ::std:
 /// names mapped to a vector of strings representing the 
 /// command.
 pub fn make_package_manager(name: &str, mut command_map: HashMap<String, Vec<String>> ) -> PackageManager {
-    let result: PackageManager = PackageManager {
+    PackageManager {
         name: String::from(name),
         version: command_map.remove("version"),
         install: command_map.remove("install"),
@@ -98,8 +99,6 @@ pub fn make_package_manager(name: &str, mut command_map: HashMap<String, Vec<Str
         remove: command_map.remove("remove"),
         remove_local: command_map.remove("remove_local"),
     };
-
-    result
 }
 
 /// Retrieve the package managers listed in 

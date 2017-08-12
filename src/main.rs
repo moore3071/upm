@@ -2,12 +2,14 @@ extern crate getopts;
 
 mod managers;
 use managers::PackageManager;
+use managers::Package;
 
 use getopts::Options;
 use std::env;
 
 use std::process::Command;
 use std::process::ExitStatus;
+use std::collections::HashMap;
 
 fn print_usage(program: &str, opts: Options) {
     let brief = format!("Usage: {} [options] [install <pkgname> | uninstall <pkgname> | query <pkgname>]", program);
@@ -18,6 +20,7 @@ fn print_usage(program: &str, opts: Options) {
 /// the version command
 fn find_package_managers(possible: &Vec<PackageManager>) -> Vec<PackageManager> {
     let mut result: Vec<PackageManager> = Vec::new();
+    //FIXME simplify this block and make it Rust with less statements
     for pack in possible {
         let ver = &pack.version;
         let ver = ver.clone();
@@ -42,11 +45,11 @@ fn run_command(command_array: Vec<String>) -> std::io::Result<ExitStatus> {
 
 //Should call man pages
 fn display_help(args: &Vec<String>) {
-    let name: &str = " ";
-    if args.len() > 2 {
-        name = &args[2];
-        println!("{}", name);
-    }
+    let name: &str = if args.len() > 2 {
+        &args[2]
+    } else {
+        " "
+    };
     match name {
         "install" => {
             Command::new("man").arg("upm-install").status();
@@ -65,11 +68,7 @@ fn display_help(args: &Vec<String>) {
     };
 }
 
-fn install(local: bool, installed: bool, package_managers: Vec<String>, args: Vec<String>)) {
-    let local = arg_reading.0;
-    let installed = arg_reading.1;
-    let package_managers = arg_reading.2;
-    let args = arg_reading.3;
+fn install(local: bool, installed: bool, package_managers: Vec<String>, args: Vec<String>) {
     //TODO
     
 }
