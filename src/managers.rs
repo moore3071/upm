@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::process::Command;
+use std::process::ExitStatus;
 use std::error::Error;
 use std::path::Path;
 use std::fs::File;
@@ -20,22 +22,35 @@ pub struct PackageManager {
 
 /// Information on a package from a particular package 
 /// manager
-pub struct Package<'a> {
+pub struct Package {
     pub name: String,
-    pub owner:& 'a PackageManager,
+    pub owner: PackageManager,
     pub version: String,
     pub description: Option<String>,
 }
 
 impl Package {
     /// Return whether the package has the specified name
-    pub fn is_called(&self, name: String) -> bool {
+    pub fn is_called(self, name: &str) -> bool {
         self.name == name
     }
 }
 
 impl PackageManager {
-    
+    pub fn exists(self) -> bool {
+        true
+    }
+
+    pub fn has_command(self, name: &str) -> bool {
+        match name {
+            "version" => self.version.is_some(),
+            "install" => self.install.is_some(),
+            "install_local" => self.install_local.is_some(),
+            "remove" => self.remove.is_some(),
+            "remove_local" => self.remove_local.is_some(),
+            &_ => false,
+        }
+    }
 }
 
 /* Turns the arguments for a package manager into a String vector 
@@ -44,6 +59,12 @@ fn get_command_as_array(field: String) -> Vec<String> {
    let result: Vec<String> = field.split(" ").map(|s| s.to_string()).collect(); 
 
    result
+}
+
+/* Runs a command given a vector of strings that are the command
+ */
+pub fn run_command(command_array: Vec<String>) -> ::std::io::Result<ExitStatus> {
+    Command::new(&command_array[0]).args(command_array).status()
 }
 
 /* Loads a package manager from its config file
@@ -98,7 +119,7 @@ pub fn make_package_manager(name: &str, mut command_map: HashMap<String, Vec<Str
         install_local: command_map.remove("install_local"),
         remove: command_map.remove("remove"),
         remove_local: command_map.remove("remove_local"),
-    };
+    }
 }
 
 /// Retrieve the package managers listed in 

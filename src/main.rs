@@ -25,7 +25,7 @@ fn find_package_managers(possible: &Vec<PackageManager>) -> Vec<PackageManager> 
         let ver = &pack.version;
         let ver = ver.clone();
         let tmp = ver.unwrap();
-        match run_command(tmp.clone()) {
+        match managers::run_command(tmp.clone()) {
             Ok(_) => {
                 result.push(pack.clone());
             },
@@ -35,12 +35,6 @@ fn find_package_managers(possible: &Vec<PackageManager>) -> Vec<PackageManager> 
     }
 
     result
-}
-
-/* Runs a command given a vector of strings that are the command
- */
-fn run_command(command_array: Vec<String>) -> std::io::Result<ExitStatus> {
-    Command::new(&command_array[0]).args(command_array).status()
 }
 
 //Should call man pages
@@ -74,7 +68,7 @@ fn install(local: bool, installed: bool, package_managers: Vec<String>, args: Ve
 }
 
 fn query(local: bool, installed: bool, package_managers: Vec<String>, args: Vec<String>) -> HashMap<String, Vec<Package>> {
-    
+   HashMap::new()
 }
 
 fn uninstall(args: Vec<String>) {
@@ -137,26 +131,4 @@ fn main() {
     } else {
 //        print_usage(program);
     }
-
-/* Stolen from the getopts crate documentation
-    let mut opts = Options::new();
-    opts.optopt("o", "", "set output file name", "NAME");
-    opts.optflag("h", "help", "print this help menu");
-    let matches = match opts.parse(&args[1..]) {
-        Ok(m) => { m }
-        Err(f) => { panic!(f.to_string()) }
-    };
-    if matches.opt_present("h") {
-        print_usage(&program, opts);
-        return;
-    }
-    let output = matches.opt_str("o");
-    let input = if !matches.free.is_empty() {
-        matches.free[0].clone()
-    } else {
-        print_usage(&program, opts);
-        return;
-    };
-    do_work(&input, output);
-*/
 }
