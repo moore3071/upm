@@ -29,16 +29,21 @@ pub struct Package {
     pub description: Option<String>,
 }
 
-impl Package {
-    /// Return whether the package has the specified name
-    pub fn is_called(self, name: &str) -> bool {
-        self.name == name
-    }
-}
-
 impl PackageManager {
+    pub fn new() -> PackageManager {
+        PackageManager {
+            name: String::from(""),
+            version: None,
+            install: None,
+            install_local: None,
+            remove: None,
+            remove_local: None,
+        }
+    }
+
+    //TODO check if pm is installed on system
     pub fn exists(self) -> bool {
-        true
+        self.clone().has_command("version") && run_command(self.clone().version.clone().unwrap()).unwrap().success()
     }
 
     pub fn has_command(self, name: &str) -> bool {
@@ -53,18 +58,26 @@ impl PackageManager {
     }
 }
 
+impl Package {
+    /// Return whether the package has the specified name
+    pub fn is_called(self, name: &str) -> bool {
+        self.name == name
+    }
+}
+
 /* Turns the arguments for a package manager into a String vector 
  */
-fn get_command_as_array(field: String) -> Vec<String> {
-   let result: Vec<String> = field.split(" ").map(|s| s.to_string()).collect(); 
+fn split_string(field: String) -> Vec<String> {
+   let result: Vec<String> = field.split_whitespace().map(|s| s.to_string()).collect(); 
 
    result
 }
 
+//FIXME: Capture output if needed
 /* Runs a command given a vector of strings that are the command
  */
-pub fn run_command(command_array: Vec<String>) -> ::std::io::Result<ExitStatus> {
-    Command::new(&command_array[0]).args(command_array).status()
+pub fn run_command(mut command_array: Vec<String>) -> ::std::io::Result<ExitStatus> {
+    Command::new(&command_array.remove(0)).args(command_array).status()
 }
 
 /* Loads a package manager from its config file
@@ -95,7 +108,7 @@ fn read_manager_file(name: String, path: &Path) -> Result<PackageManager, ::std:
         } else if firstchar == Some('%') {
             if key.len()>0 && value.len()>0 {
                 //Ownership is passed and key and value disappear
-                command_map.insert(key, get_command_as_array(value));
+                command_map.insert(key, split_string(value));
             }
 
             key = String::from(line.trim()).split_off(1);
@@ -151,3 +164,105 @@ pub fn get_managers() -> Vec<PackageManager> {
 
     result_list
 }
+
+    #[test]
+    fn has_command_test() {
+        let test: PackageManager = PackageManager {
+            name: String::from("empty"),
+        	version: Some(vec![String::from("ls")]),
+        	install: None,
+        	install_local: None,
+        	remove: None,
+        	remove_local: None,
+        };
+        assert!(test.clone().has_command("version"));
+        assert!(!&test.has_command("install"));
+    }
+
+    //TODO
+    #[test]
+    fn is_called_test() {
+        assert!(false);
+    }
+
+    #[test]
+    fn split_string_t1() {
+        let input = String::from("pacman -S -y -u");
+        assert_eq!(split_string(input), vec!["pacman", "-S", "-y", "-u"]);
+    }
+
+    #[test]
+    fn split_string_empty() {
+        let input = String::new();
+        let res: Vec<String> = Vec::new();
+        assert_eq!(split_string(input), res);
+    }
+    #[test]
+    fn split_string_single_word() {
+        let input = String::from("npm");
+        assert_eq!(split_string(input), vec!["npm"]);
+    }
+
+    #[test]
+    fn exists_true() {
+        //Let's be honest, rustc should exist if we're compiling on here
+        let test: PackageManager = PackageManager {
+            name: String::from("rust compiler"),
+        	version: Some(vec![String::from("rustc")]),
+        	install: Some(vec![String::from("rustc")]),
+        	install_local: Some(vec![String::from("rustc")]),
+        	remove: Some(vec![String::from("rustc")]),
+        	remove_local: Some(vec![String::from("rustc")]),
+        };
+        assert!(test.exists());
+    }
+
+    #[test]
+    fn exists_false() {
+        let test: PackageManager = PackageManager {
+            name: String::from("non-existent manager"),
+        	version: Some(vec![String::from("acommandthatdoesnotexist")]),
+        	install: Some(vec![String::from("acommandthatdoesnotexist")]),
+        	install_local: Some(vec![String::from("acommandthatdoesnotexist")]),
+        	remove: Some(vec![String::from("acommandthatdoesnotexist")]),
+        	remove_local: Some(vec![String::from("acommandthatdoesnotexist")]),
+        };
+        assert!(!test.exists());
+    }
+
+    #[test]
+    fn exists_empty() {
+        let test: PackageManager = PackageManager {
+            name: String::from("empty"),
+        	version: None,
+        	install: None,
+        	install_local: None,
+        	remove: None,
+        	remove_local: None,
+        };
+        assert!(!test.exists());
+    }
+
+    //TODO
+    #[test]
+    fn run_command_empty() {
+
+    }
+
+    //TODO
+    #[test]
+    fn run_command_single_arg() {
+
+    }
+
+    //TODO
+    #[test]
+    fn run_command_two_args() {
+
+    }
+
+    //TODO
+    #[test]
+    fn run_command_multi_arg() {
+
+    }
