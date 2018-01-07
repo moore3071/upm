@@ -1,0 +1,2 @@
+globalconfdir = '/etc/'
+secondaryconfdir = '/usr/share/'

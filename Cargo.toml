@@ -5,3 +5,5 @@ authors = ["Brandon Moore <moore.3071@osu.edu>"]
 
 [dependencies]
 getopts = "0.2"
+[build-dependencies]
+toml = "0.4.5"
