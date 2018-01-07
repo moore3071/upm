@@ -1,134 +1,79 @@
-extern crate getopts;
+#[macro_use]
+extern crate clap;
 
 mod managers;
 use managers::PackageManager;
 use managers::Package;
 
-use getopts::Options;
-use std::env;
+use clap::{Arg, App, SubCommand, AppSettings};
 
-use std::process::Command;
-use std::process::ExitStatus;
 use std::collections::HashMap;
-
-fn print_usage(program: &str, opts: Options) {
-    let brief = format!("Usage: {} [options] [install <pkgname> | uninstall <pkgname> | query <pkgname>]", program);
-    print!("{}", opts.usage(&brief));
-}
 
 /// Checks what package managers are on the system by calling
 /// the version command
-fn find_package_managers(possible: &Vec<PackageManager>) -> Vec<PackageManager> {
-    let mut result: Vec<PackageManager> = Vec::new();
-    //FIXME simplify this block and make it Rust with less statements
-    for pack in possible {
-        let ver = &pack.version;
-        let ver = ver.clone();
-        let tmp = ver.unwrap();
-        match managers::run_command(tmp.clone()) {
-            Ok(_) => {
-                result.push(pack.clone());
-            },
-            Err(e) => {
-            },
-        };
-    }
-
-    result
+fn find_package_managers() {
+    //TODO
 }
 
-//Should call man pages
-fn display_help(args: &Vec<String>) {
-    let name: &str = if args.len() > 2 {
-        &args[2]
-    } else {
-        " "
-    };
-    match name {
-        "install" => {
-            Command::new("man").arg("upm-install").status();
-        },
-        "uninstall" => {
-            println!("Weird things");
-//            Command::new("man").arg("upm-uninstall").status();
-        },
-        "query" => {
-            Command::new("man").arg("upm-query").status();
-        },
-        _ => {
-            println!("-{}-", name);
-//            Command::new("man").arg("upm").status();
-        },
-    };
-}
-
-fn install(local: bool, installed: bool, package_managers: Vec<String>, args: Vec<String>) {
+fn install() {
     //TODO
     
 }
 
-fn query(local: bool, installed: bool, package_managers: Vec<String>, args: Vec<String>) -> HashMap<String, Vec<Package>> {
-   HashMap::new()
+fn query() {
+    //TODO
 }
 
-fn uninstall(args: Vec<String>) {
+fn uninstall() {
 //TODO
 }
 
-fn read_args(args: Vec<String>) -> (bool, bool, Vec<String>, Vec<String>) {
-    let mut local: bool = false;
-    let mut installed: bool = false;
-    let specified_managers: Vec<String>;
-
-    let mut opts = Options::new();
-    opts.optmulti("m", "manager", "specify a manager to use. Use repeatedly for multiple", "manager_name");
-    opts.optflag("i", "installed", "Query the installed packages");
-    opts.optflag("l", "local", "Query local package files (bundle, etc)");
-    let matches = match opts.parse(&args[2..]) {
-        Ok(m) => { m }
-        Err(f) => { panic!(f.to_string()) }
-    };
-    if matches.opt_present("i") {
-        installed = true;
-    }
-    if matches.opt_present("l") {
-        local = true;
-    }
-    specified_managers = matches.opt_strs("m");
-
-    return (local, installed, specified_managers, matches.free);
-}
-
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    let program = args[0].clone();
-    let pkg_name = env!("CARGO_PKG_NAME");
-    let pkg_version = env!("CARGO_PKG_VERSION");
-
     let managers: Vec<PackageManager> = managers::get_managers();
 
-    if args.len() > 1 {
-        match &*args[1] {
-            "--help" => display_help(&args),
-            "-h" => display_help(&args),
-            "--version" => {
-                println!("{} v{}", pkg_name, pkg_version);
-            },
-            "query" => {
+    let managers_arg = Arg::with_name("manager")
+         .short("m")
+         .long("manager")
+         .help("Specifies the package managers to search for the package in")
+         .value_name("MANAGER")
+         .takes_value(true);
+    let exclude_managers = Arg::with_name("excludes managers")
+        .long("exclude-managers")
+        .help("Specifies package managers to not use")
+        .takes_value(true)
+        .value_name("MANAGER");
 
-            },
-            "install" => {
-                read_args(args);
-            },
-            "uninstall" => {
+    //Clap is awesome! 
+    let matches = App::new("universal package manager")
+        .version(crate_version!())
+        .author(crate_authors!())
+        .about("Universal package manager provides a single interface for basic \npackage management across multiple package managers.")
+        .global_setting(AppSettings::ArgRequiredElseHelp)
+        .arg(Arg::with_name("list managers")
+             .long("list-managers")
+             .help("list the package managers available on this system"))
+        .subcommand(SubCommand::with_name("query")
+                    .about("Search for a package")
+                    .arg(&managers_arg)
+                    .arg(&exclude_managers))
+        .subcommand(SubCommand::with_name("install")
+                    .about("Search for a package and then install via a chosen package manager")
+                    .arg(&managers_arg)
+                    .arg(&exclude_managers))
+        .subcommand(SubCommand::with_name("uninstall")
+                    .about("Search for an installed package and then uninstall it")
+                    .arg(&managers_arg)
+                    .arg(&exclude_managers))
+        .get_matches();
 
-            },
-            _ => {
-                println!("Invalid {} command: {}", pkg_name, args[1]);
-//                print_usage(&program, opts);
-            },
-        }
-    } else {
-//        print_usage(program);
+    if let Some(matches) = matches.subcommand_matches("query") {
+        query()
+    } else if let Some(matches) = matches.subcommand_matches("install") {
+        install()
+    } else if let Some(matches) = matches.subcommand_matches("uninstall") {
+        uninstall()
+    } else if matches.is_present("list managers") {
+        //TODO
     }
 }
+
