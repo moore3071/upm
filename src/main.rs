@@ -1,13 +1,12 @@
-#[macro_use]
-extern crate clap;
+#[macro_use] extern crate clap;
+#[macro_use] extern crate failure;
+extern crate toml;
 
 mod managers;
-use managers::PackageManager;
-use managers::Package;
 
 use clap::{Arg, App, SubCommand, AppSettings};
 
-use std::collections::HashMap;
+include!(concat!(env!("OUT_DIR"), "/config.rs"));
 
 /// Checks what package managers are on the system by calling
 /// the version command
@@ -29,7 +28,6 @@ fn uninstall() {
 }
 
 fn main() {
-    let managers: Vec<PackageManager> = managers::get_managers();
 
     let managers_arg = Arg::with_name("manager")
          .short("m")

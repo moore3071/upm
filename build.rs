@@ -15,18 +15,9 @@ fn main() {
     match File::open("config.toml") {
         Ok(mut file) => {
             let mut conffile = String::new();
-            match file.read_to_string(&mut conffile) {
-                Ok(_) => {},
-                Err(e) => {
-                    panic!("Failure to read config.toml. Check priviledges. Err: {}", e);
-                }
-            }
-            let config = match conffile.as_str().parse::<Value>() {
-                Ok(result) => result,
-                Err(e) => {
-                    panic!("Failure to read config.toml. Is this valid toml? Err: {}", e);
-                }
-            };
+            file.read_to_string(&mut conffile).expect("Failure to read config.toml. Check priviledges.");
+            let config = conffile.as_str().parse::<Value>().expect("Failure to read config.toml. Is this valid toml?");
+
             if config.get("global_conf_dir").is_some() {
                 global_conf_dir = config.get("global_conf_dir").unwrap().as_str().unwrap().to_owned();
                 println!("Read in global_conf_dir as: {}", global_conf_dir);
@@ -47,10 +38,10 @@ fn main() {
     let mut config_code = File::create(&dest_path).unwrap();
 
     match write!(config_code, "
-            pub fn GLOBALCONFDIR() -> &'static str {{
+            pub fn global_conf_dir() -> &'static str {{
                 \"{}\"
             }}
-            pub fn SECONDARYCONFDIR() -> &'static str {{
+            pub fn secondary_conf_dir() -> &'static str {{
                 \"{}\"
             }}",global_conf_dir,secondary_conf_dir) {
         Ok(_) => {
