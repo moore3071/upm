@@ -1,6 +1,7 @@
 #[macro_use] extern crate clap;
 #[macro_use] extern crate failure;
 extern crate toml;
+extern crate regex;
 
 mod managers;
 

@@ -4,12 +4,14 @@ use toml::Value;
 use std::path::PathBuf;
 use std::io::prelude::*;
 use failure::Error;
+use regex::Regex;
 
 include!(concat!(env!("OUT_DIR"), "/config.rs"));
 
 /// The name of a packagemanager and the various commands 
-/// that it may or may not supply to the user. The only 
-/// mandatory command is version.
+/// that it may or may not supply to the user as Strings.
+/// The only mandatory command is version, meanwhile a pathbuf
+/// is included to allow for external scripts to be called.
 pub struct PackageManager {
     pub name: String,
     pub version: String,
@@ -22,6 +24,8 @@ pub struct PackageManager {
 }
 
 impl PackageManager {
+    /// Create a blank PackageManager with no commands
+    /// (version and name are empty Strings).
     pub fn new() -> PackageManager {
         PackageManager {
             name: String::from(""),
@@ -35,6 +39,8 @@ impl PackageManager {
         }
     }
 
+    /// Check if the PackageManager is installed by seeing if
+    /// the version command exits with a status code of 0.
     pub fn exists(self) -> bool {
         let mut version_command = self.make_command("version");
         match version_command.status() {
@@ -43,6 +49,8 @@ impl PackageManager {
         }
     }
 
+    /// Check if the specified command field of the struct
+    /// is some
     pub fn has_command(self, name: &str) -> bool {
         match name {
             "version" => true,
@@ -54,6 +62,9 @@ impl PackageManager {
         }
     }
 
+    /// Attempt to run the PackageManager command specified
+    /// by name. Arguments can be supplied with the args
+    /// parameter.
     pub fn run_command(self, name: &str, args: &str) -> Result<Child,Error> {
         let mut command = self.make_command(name);
         command.args(args.split_whitespace());
@@ -63,6 +74,8 @@ impl PackageManager {
         }
     }
 
+    /// Turns the String that describes a command into a
+    /// std::process::Command struct.
     fn make_command(self, name: &str) -> Command {
         let tmp = match name {
             "version" => self.version,
@@ -79,26 +92,47 @@ impl PackageManager {
         result
     }
 
+    /// Run the install command with the provided arguments
     pub fn install(self, args: &str) -> Result<Child,Error> {
         self.run_command("install", args)
     }
 
+    /// Run the uninstall command with the provided arguments
     pub fn uninstall(self, args: &str) -> Result<Child,Error> {
         self.run_command("uninstall", args)
     }
 
+    /// Run the search command with the provided arguments
     pub fn search(self, args: &str) -> Result<Child,Error> {
         self.run_command("search", args)
     }
 
+    /// Get the name of the package manager
     pub fn get_name(self) -> String {
         self.name
     }
 
-    pub fn get_version(self) -> Result<Child,Error> {
+    /// Get the directory of the configuration file that
+    /// describes the PackageManager
+    pub fn get_config_dir(self) -> PathBuf {
+        self.config_dir
+    }
+
+    /// Run the version command
+    pub fn version(self) -> Result<Child,Error> {
         self.run_command("version", "")
     }
 
+    /// Get the Version of the package manager
+    pub fn get_version(self) -> Result<Version,Error> {
+        let mut command = self.make_command("version");
+        let output = command.output()?;
+        let version_string = String::from_utf8(output.stdout)?;
+        Ok(Version::from_string(version_string))
+    }
+
+    /// Read a toml configuration file with a PackageManager
+    /// description and create a PackageManager from this info.
     pub fn from_file(path: PathBuf) -> Result<PackageManager,Error> {
         let mut file = File::open(&path)?;
 
@@ -172,6 +206,7 @@ impl Package {
         self.name == name
     }
 
+    /// Make a new blank package
     pub fn new() -> Package {
         Package{
             name: String::new(),
@@ -181,27 +216,75 @@ impl Package {
         }
     }
 
+    /// Call install from the PackageManager pointed
+    /// to by owner.
     pub fn install(self) -> Result<Child,Error> {
         self.owner.install(&self.name)
     }
 
+    /// Call uninstall from the PackageManager pointed
+    /// to by owner.
     pub fn uninstall(self) -> Result<Child,Error> {
         self.owner.uninstall(&self.name)
     }
 
+    /// Return the package name
     pub fn get_name(self) -> String {
         self.name
     }
 
+    /// Return the package version
     pub fn get_version(self) -> String {
         self.version
     }
 
+    /// Return the description of the package
     pub fn get_description(self) -> String {
         self.description
     }
 
+    /// Return the PackageManager that owns this
+    /// package
     pub fn get_manager(self) -> PackageManager {
         self.owner
     }
+}
+
+/// A simple representation of a version string
+pub struct Version {
+    pub representation: String,
+    pub semantic: bool
+}
+
+impl Version {
+    /// Create an empty version that is not semantic
+    pub fn new() -> Version {
+        Version {
+            representation: String::new(),
+            semantic: false,
+        }
+    }
+
+    /// Create a version from a string. Checks if the version fits
+    /// with semantic versioning 2.0.0 and sets semantic to true if
+    /// it does.
+    pub fn from_string(representation: String) -> Version {
+        let semantic = Version::is_semantic(&representation);
+        Version {
+            representation,
+            semantic,
+        }
+    }
+
+    /// Check if a representation fits with semantic versioning
+    fn is_semantic(representation: &str) -> bool {
+        let re = Regex::new(r"^(\d+)\.(\d+)\.(\d+)(?:-([\dA-Za-z-]+(?:\.[\dA-Za-z-]+)*))?(?:\+([\dA-Za-z-]+(?:\.[\dA-Za-z-]+)*))?$").unwrap();
+        re.is_match(representation)
+    }
+
+    /// Explicitly set whether the version is semantic
+    pub fn set_semantic(mut self, val: bool) {
+        self.semantic = val;
+    }
+    
 }
