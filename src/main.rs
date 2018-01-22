@@ -1,9 +1,4 @@
 #[macro_use] extern crate clap;
-#[macro_use] extern crate failure;
-extern crate toml;
-extern crate regex;
-
-mod managers;
 
 use clap::{Arg, App, SubCommand, AppSettings};
 
@@ -27,6 +22,9 @@ fn query() {
 fn uninstall() {
 //TODO
 }
+
+//TODO look into a TUI interface that can be used for viewing install and query commands which
+//often will exceed scrollback buffers.
 
 fn main() {
 
@@ -65,11 +63,11 @@ fn main() {
                     .arg(&exclude_managers))
         .get_matches();
 
-    if let Some(matches) = matches.subcommand_matches("query") {
+    if let Some(_matches) = matches.subcommand_matches("query") {
         query()
-    } else if let Some(matches) = matches.subcommand_matches("install") {
+    } else if let Some(_matches) = matches.subcommand_matches("install") {
         install()
-    } else if let Some(matches) = matches.subcommand_matches("uninstall") {
+    } else if let Some(_matches) = matches.subcommand_matches("uninstall") {
         uninstall()
     } else if matches.is_present("list managers") {
         //TODO
