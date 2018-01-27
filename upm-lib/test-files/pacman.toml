@@ -1,0 +1,4 @@
+version = './pacman/version.sh'
+search = 'pacman -Ss'
+install = 'pacman -S'
+remove = 'pacman -Rs'
