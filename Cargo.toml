@@ -2,9 +2,12 @@
 name = "upm"
 version = "0.1.0"
 authors = ["Brandon Moore <moore.3071@osu.edu>"]
+license = "MIT"
+description = "Universal Package Manager is a way to perform basic package management across a range of package managers such as Apt, Pip, and Gem. This is the CLI interface to perform installation, removal, and querying of packages."
 
 [dependencies]
 clap = "2.26.0"
-upm-lib = { path = "upm-lib", version = "0.1.0" }
+cursive = "0.7.5"
+upm_lib = { path = "upm_lib", version = "0.2.0" }
 [build-dependencies]
 toml = "0.4.5"

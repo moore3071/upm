@@ -1,6 +1,13 @@
 #[macro_use] extern crate clap;
+extern crate cursive;
+extern crate upm_lib;
 
 use clap::{Arg, App, SubCommand, AppSettings};
+
+use cursive::Cursive;
+use cursive::traits::*;
+use cursive::views::{TextView, SelectView, LinearLayout};
+use cursive::theme::{Theme};
 
 include!(concat!(env!("OUT_DIR"), "/config.rs"));
 

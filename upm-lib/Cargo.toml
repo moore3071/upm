@@ -1,7 +1,9 @@
 [package]
-name = "upm-lib"
-version = "0.1.0"
+name = "upm_lib"
+version = "0.2.0"
 authors = ["Brandon Moore <moore.3071@osu.edu>"]
+license = "MIT"
+description = "Universal Package Manager is a way to perform basic package management across a range of package managers such as Apt, Pip, and Gem. This is the backend logic that can be used to create a frontend for upm."
 
 [dependencies]
 toml = "0.4.5"

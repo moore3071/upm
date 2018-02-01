@@ -1,11 +1,25 @@
 //! The universal package manager library (upm-lib) provides an abstraction to perform simple
-//! commands with any package manager. If you want to do something with a particular package
-//! manager then this probably isn't the crate for you. There is a distinction between installation
-//! and removal of packages on a system-wide level and a local level (think of language level
-//! managers like gem, pip, and Cargo).
+//! commands with any package manager. Currently there are no frontends implemented, but the
+//! functionality is exposed for frontends to utilize. Feel free to implement a frontend!
+//!
+//! If you want to do something with a particular package manager then this probably isn't the
+//! library for you. If you want to query multiple package managers at once to search for a package
+//! provided by multiple sources, then this is the library for you. This is common for language
+//! specific binaries that are provided by language package managers and system package managers.
+//!
+//! Since certain package managers such as NPM allow installation in a user's home directory or
+//! somewhere accessible for all users, there is a distinction between installation and removal of
+//! packages on a system-wide level and a local level.
+//!
+//! It is expected that the frontend would load in the different package managers from
+//! configuration files as discussed in [PackageManager](struct.PackageManager.html).
+//!
+//! Versioning is provided by the [Version] struct. [Version] is used in place of
+//! [semver](https://crates.io/crates/semver) due to the need to support non-semantic versions.
+//!
+//! [Version]: struct.Version.html
 
-#[macro_use]
-extern crate failure;
+#[macro_use] extern crate failure;
 extern crate regex;
 extern crate toml;
 
@@ -15,14 +29,14 @@ use std::hash::{Hash, Hasher};
 use std::fs::{File,read_dir};
 use std::io::prelude::*;
 use std::cmp::Ordering;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use failure::Error;
 use regex::Regex;
 use toml::Value;
 
 /// The representation of a package manager. Includes the name of the package manager, a path to
 /// reference scripts from, and commands in string form (or scripts to call package manager
-/// commands and properly format the output)
+/// commands and properly format the output).
 #[derive(Eq,Clone)]
 pub struct PackageManager {
     pub name: String,
@@ -94,6 +108,8 @@ impl PackageManager {
     }
 
     /// Turns the String that describes a command into a std::process::Command struct.
+    /// # Panics
+    /// Panics if the name provided isn't one of the commands in the PackageManager struct
     fn make_command(&self, name: &str) -> Option<Command> {
         let tmp: Option<&String> = match name {
             "version" => Some(&self.version),
@@ -156,7 +172,7 @@ impl PackageManager {
 
     /// Read a toml configuration file with a PackageManager description and create a
     /// PackageManager from this info.
-    pub fn from_file(path: &PathBuf) -> Result<PackageManager,Error> {
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<PackageManager,Error> {
         let mut file = File::open(&path)?;
 
         let mut content = String::new();
@@ -165,7 +181,7 @@ impl PackageManager {
 
         let resource = content.as_str().parse::<Value>()?;
 
-        let name: String = String::from(path.file_stem().unwrap().to_str().unwrap());
+        let name: String = String::from(path.as_ref().file_stem().unwrap().to_str().unwrap());
 
         let version: String = match resource.get("version") {
             Some(s) => s.as_str().unwrap().to_owned(),
@@ -193,7 +209,7 @@ impl PackageManager {
             None => None
         };
 
-       let config_dir: PathBuf = match path.parent() {
+       let config_dir: PathBuf = match path.as_ref().parent() {
            Some(dir) => dir.to_path_buf(),
            None => PathBuf::new()
        };
@@ -291,12 +307,12 @@ impl Package {
     }
 }
 
-/// A simple representation of a version string. For semantic versioning it is quite similar to
-/// Steve Klabnik's semver crate, but non-semantic versioning is also permitted.
+/// A simple representation of a version string. For semantic versioning Steve Klabnik's semver
+/// crate is preferable. But non-semantic versioning is also permitted in this struct.
 #[derive(Debug)]
 pub struct Version {
-    pub representation: String,
-    pub semantic: bool
+    representation: String,
+    semantic: bool
 }
 
 impl Version {
@@ -318,17 +334,19 @@ impl Version {
         }
     }
 
+    /// Get the string representation of the version
     pub fn get_representation(self) -> String {
         self.representation
     }
 
+    /// Change the version along with checking if this new version appears to be semantic
     pub fn set_representation(&mut self, val: String) {
         self.representation = val;
         self.semantic = Version::is_semantic(&self.representation);
     }
 
-    /// Check if a representation fits with semantic versioning
-    fn is_semantic(representation: &str) -> bool {
+    /// Check if a representation appears to be semantic versioning
+    pub fn is_semantic(representation: &str) -> bool {
         let re = Version::get_semantic_regex();
         re.is_match(representation)
     }
@@ -349,6 +367,7 @@ impl Version {
         Ok(())
     }
 
+    /// Is this a semantic version?
     pub fn get_semantic(self) -> bool {
         return self.semantic
     }
@@ -373,12 +392,9 @@ impl PartialEq for Version {
 }
 //TODO implement ordering for Versions
 
-//TODO Panic a bit for certain cases.
-// 1. pathbuf is not a directory
-// 2. can't read directory
-// This should probably return a result
+//TODO Give info on what files couldn't be read
 /// Get a vector of any package managers specified in the given directory.
-pub fn get_managers(directory: &PathBuf, names: &ManagerSpecifier) -> Result<Vec<PackageManager>, Error> {
+pub fn get_managers<P: AsRef<Path>>(directory: P, names: &ManagerSpecifier) -> Result<Vec<PackageManager>, Error> {
     let mut result = Vec::new();
     if let Ok(entries) = read_dir(directory) {
         for entry in entries {
@@ -428,7 +444,10 @@ pub enum ManagerSpecifier {
 /// explicitly exclude or include certain package managers. If the include variant of
 /// ManagerSpecifier is used then only the specified packagemanager names will be returned if they
 /// exist.
-pub fn read_config_dirs(directories: Vec<&PathBuf>, exceptions: ManagerSpecifier) -> Vec<PackageManager> {
+/// # Panics
+/// If one of the directories can't be read. This should be changed soon to avoid panicking and
+/// instead give feedback on what directories and files were and were not read.
+pub fn read_config_dirs<P: AsRef<Path>>(directories: Vec<P>, exceptions: ManagerSpecifier) -> Vec<PackageManager> {
     let mut result: HashSet<PackageManager> = HashSet::new();
     for dir in directories {
         let tmp = get_managers(&dir, &exceptions);
