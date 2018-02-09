@@ -23,7 +23,7 @@ use toml::Value;
 /// The representation of a package manager. Includes the name of the package manager, a path to
 /// reference scripts from, and commands in string form (or scripts to call package manager
 /// commands and properly format the output)
-#[derive(Eq,Clone)]
+#[derive(Eq,Clone,Default)]
 pub struct PackageManager {
     pub name: String,
     pub version: String,
@@ -36,29 +36,14 @@ pub struct PackageManager {
 }
 
 impl PackageManager {
-    /// Create a blank PackageManager with no commands and the name and version being empty Strings.
-    pub fn new() -> PackageManager {
-        PackageManager {
-            name: String::from(""),
-            version: String::from(""),
-            config_dir: PathBuf::new(),
-            install: None,
-            install_local: None,
-            remove: None,
-            remove_local: None,
-            search: None,
-        }
-    }
-
     //Concats a config_dir with a command that starts with ./ otherwise it returns the command str
     fn fix_relative_path(config_dir: &PathBuf, command: &str) -> String {
-        match command.starts_with("./") {
-            true => {
+        if command.starts_with("./") {
                 let mut tmp = config_dir.as_os_str().to_str().unwrap().to_owned();
                 tmp.push_str(command);
                 tmp
-            },
-            false => command.to_owned()
+        } else {
+            command.to_owned()
         }
     }
 
@@ -105,7 +90,7 @@ impl PackageManager {
         };
         match tmp {
             Some(s) => {
-                let s = PackageManager::fix_relative_path(&self.config_dir, &s);
+                let s = PackageManager::fix_relative_path(&self.config_dir, s);
                 let mut s = s.split_whitespace();
                 let mut result = Command::new(s.nth(0).unwrap());
                 let args: Vec<&str> = s.collect();
@@ -236,6 +221,7 @@ impl Hash for PackageManager {
 }
 
 /// Information on a package from a particular package manager
+#[derive(Default)]
 pub struct Package {
     pub name: String,
     pub owner: PackageManager,
@@ -245,18 +231,8 @@ pub struct Package {
 
 impl Package {
     /// Return whether the package has the specified name
-    pub fn is_called(self, name: &str) -> bool {
+    pub fn is_called(&self, name: &str) -> bool {
         self.name == name
-    }
-
-    /// Make a new blank package
-    pub fn new() -> Package {
-        Package{
-            name: String::new(),
-            owner: PackageManager::new(),
-            version: Version::new(),
-            description: String::new()
-        }
     }
 
     /// Call install from the PackageManager pointed to by owner.
@@ -270,8 +246,8 @@ impl Package {
     }
 
     /// Return the package name
-    pub fn get_name(self) -> String {
-        self.name
+    pub fn get_name(&self) -> String {
+        (&self.name).to_owned()
     }
 
     /// Return the package version
@@ -293,21 +269,13 @@ impl Package {
 
 /// A simple representation of a version string. For semantic versioning it is quite similar to
 /// Steve Klabnik's semver crate, but non-semantic versioning is also permitted.
-#[derive(Debug)]
+#[derive(Debug,Default)]
 pub struct Version {
     pub representation: String,
     pub semantic: bool
 }
 
 impl Version {
-    /// Create an empty version that is not semantic
-    pub fn new() -> Version {
-        Version {
-            representation: String::new(),
-            semantic: false,
-        }
-    }
-
     /// Create a version from a string. Checks if the version fits with semantic versioning 2.0.0
     /// and sets semantic to true if it does.
     fn from_str(representation: &str) -> Version {
@@ -340,17 +308,15 @@ impl Version {
     /// Explicitly set whether the version is semantic. If the version string doesn't pass
     /// is_semantic, then it won't set semantic to true and will return false.
     pub fn set_semantic(&mut self, val: bool) -> Result<(),Error> {
-        if val {
-            if !Version::is_semantic(&self.representation) {
-                bail!("Version does not match semantic structure");
-            }
+        if val && !Version::is_semantic(&self.representation) {
+            bail!("Version does not match semantic structure");
         }
         self.semantic = val;
         Ok(())
     }
 
     pub fn get_semantic(self) -> bool {
-        return self.semantic
+        self.semantic
     }
     
 }
@@ -358,16 +324,16 @@ impl Version {
 impl PartialEq for Version {
     fn eq(&self, other: &Version) -> bool {
         if self.semantic != other.semantic {
-            return false;
+            false
         }
         else if self.semantic && other.semantic {
             let re = Version::get_semantic_regex();
             let self_groups = re.captures(&self.representation).unwrap();
             let other_groups = re.captures(&other.representation).unwrap();
-            return self_groups.get(1)==other_groups.get(1) && self_groups.get(2)==
-                other_groups.get(2) && self_groups.get(3) == other_groups.get(3);
+            self_groups.get(1)==other_groups.get(1) && self_groups.get(2)==
+                other_groups.get(2) && self_groups.get(3) == other_groups.get(3)
         } else {
-            return self.representation == other.representation;
+            self.representation == other.representation
         }
     }
 }
@@ -386,15 +352,15 @@ pub fn get_managers(directory: &PathBuf, names: &ManagerSpecifier) -> Result<Vec
                 let path = entry.path();
                 let name = entry.file_name();
                 if name.to_str().unwrap().ends_with(".toml") {
-                    if let &Some(stem) = &path.file_stem() {
+                    if let Some(stem) = path.file_stem() {
                         //Skip if the name shouldn't be collected
-                        match &names {
-                            &&ManagerSpecifier::Excludes(ref set) => {
+                        match *names {
+                            ManagerSpecifier::Excludes(ref set) => {
                                 if set.contains(stem.to_str().unwrap()) {
                                     continue;
                                 }
                             },
-                            &&ManagerSpecifier::Includes(ref set) => {
+                            ManagerSpecifier::Includes(ref set) => {
                                 if !set.contains(stem.to_str().unwrap()) {
                                     continue;
                                 }
@@ -426,12 +392,12 @@ pub enum ManagerSpecifier {
 //struct for 1.0.0
 /// Read the configuration directories listed from highest precedence to lowest with the option to
 /// explicitly exclude or include certain package managers. If the include variant of
-/// ManagerSpecifier is used then only the specified packagemanager names will be returned if they
+/// `ManagerSpecifier` is used then only the specified packagemanager names will be returned if they
 /// exist.
-pub fn read_config_dirs(directories: Vec<&PathBuf>, exceptions: ManagerSpecifier) -> Vec<PackageManager> {
+pub fn read_config_dirs(directories: Vec<&PathBuf>, exceptions: &ManagerSpecifier) -> Vec<PackageManager> {
     let mut result: HashSet<PackageManager> = HashSet::new();
     for dir in directories {
-        let tmp = get_managers(&dir, &exceptions);
+        let tmp = get_managers(dir, exceptions);
         let tmp = match tmp {
             Ok(s) => s,
             Err(_e) => panic!("Couldn't get managers from directory"),
