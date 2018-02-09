@@ -8,6 +8,6 @@ description = "Universal Package Manager is a way to perform basic package manag
 [dependencies]
 clap = "2.26.0"
 cursive = "0.7.5"
-upm_lib = { path = "upm_lib", version = "0.2.0" }
+upm_lib = { path = "upm_lib", version = "0.3.0" }
 [build-dependencies]
 toml = "0.4.5"
